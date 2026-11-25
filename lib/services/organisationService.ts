@@ -15,15 +15,7 @@ import {
   sampleOrganisationsMap,
   CompleteOrganisationData,
 } from '@/data/sampleOrganisations';
-import { db } from '@/lib/firebase/client';
 import { adminDb } from '@/lib/firebase/admin';
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  addDoc,
-} from 'firebase/firestore';
 
 /**
  * Resolves an organisation by its URL slug (e.g., 'bright' or 'excellence')
@@ -65,25 +57,7 @@ export async function getOrganisationBySlug(slug: string): Promise<Organisation 
     }
   }
 
-  // 2. Try client-side Firestore if available
-  if (db && typeof window !== 'undefined') {
-    try {
-      const q = query(
-        collection(db, 'organisations'),
-        where('slug', '==', normalizedSlug),
-        where('status', '==', 'active')
-      );
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const docSnap = querySnapshot.docs[0];
-        return { id: docSnap.id, ...(docSnap.data() as Omit<Organisation, 'id'>) };
-      }
-    } catch (err) {
-      console.warn('Client firestore lookup error (falling back to sample data):', err);
-    }
-  }
-
-  // 3. In-memory resilient fallback
+  // 2. In-memory resilient fallback
   const fallback = sampleOrganisationsMap[normalizedSlug];
   return fallback ? fallback.organisation : null;
 }
@@ -215,18 +189,7 @@ export async function saveEnquiry(
       return { success: true, id: docRef.id };
     }
 
-    // 2. Try client SDK Firestore
-    if (db) {
-      const docRef = await addDoc(collection(db, 'organisations', organisationId, 'enquiries'), {
-        ...enquiryData,
-        organisationId,
-        status: 'new',
-        createdAt: new Date().toISOString(),
-      });
-      return { success: true, id: docRef.id };
-    }
-
-    // 3. Fallback demo mode simulation
+    // 2. Fallback demo mode simulation
     return { success: true, id: 'demo-' + Date.now() };
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : 'Database write error';
