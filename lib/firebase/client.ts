@@ -24,7 +24,7 @@ let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
 
-if (typeof window !== 'undefined' || isFirebaseClientConfigured()) {
+if (isFirebaseClientConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -33,6 +33,10 @@ if (typeof window !== 'undefined' || isFirebaseClientConfigured()) {
   } catch (error) {
     console.warn('Firebase client initialization warning:', error);
   }
+} else if (typeof window !== 'undefined') {
+  console.warn(
+    'Firebase client environment variables (NEXT_PUBLIC_FIREBASE_API_KEY, etc.) are missing. Please add them to your Vercel Project Settings.'
+  );
 }
 
 export { app, auth, db, storage };

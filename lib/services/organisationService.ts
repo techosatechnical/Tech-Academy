@@ -44,7 +44,21 @@ export async function getOrganisationBySlug(slug: string): Promise<Organisation 
 
       if (!snapshot.empty) {
         const docSnap = snapshot.docs[0];
-        return { id: docSnap.id, ...(docSnap.data() as Omit<Organisation, 'id'>) };
+        const data = docSnap.data() as Omit<Organisation, 'id'>;
+        const fallback = sampleOrganisationsMap[normalizedSlug];
+        return {
+          ...(fallback?.organisation || {}),
+          id: docSnap.id,
+          ...data,
+          theme: {
+            ...(fallback?.organisation?.theme || {}),
+            ...(data.theme || {}),
+          },
+          contact: {
+            ...(fallback?.organisation?.contact || {}),
+            ...(data.contact || {}),
+          },
+        } as Organisation;
       }
     } catch (err) {
       console.warn('Server firestore lookup error (falling back to sample data):', err);
@@ -113,10 +127,27 @@ export async function getCompleteOrganisationData(slugOrId: string): Promise<Com
         ]);
 
         return {
-          organisation: orgData,
-          settings: settingsDoc.exists ? (settingsDoc.data() as OrganisationSettings) : sample.settings,
-          homePage: homeDoc.exists ? (homeDoc.data() as HomePageContent) : sample.homePage,
-          aboutPage: aboutDoc.exists ? (aboutDoc.data() as AboutPageContent) : sample.aboutPage,
+          organisation: {
+            ...sample.organisation,
+            ...orgData,
+            theme: {
+              ...sample.organisation.theme,
+              ...(orgData.theme || {}),
+            },
+            contact: {
+              ...sample.organisation.contact,
+              ...(orgData.contact || {}),
+            },
+          },
+          settings: settingsDoc.exists
+            ? { ...sample.settings, ...(settingsDoc.data() as OrganisationSettings) }
+            : sample.settings,
+          homePage: homeDoc.exists
+            ? { ...sample.homePage, ...(homeDoc.data() as HomePageContent) }
+            : sample.homePage,
+          aboutPage: aboutDoc.exists
+            ? { ...sample.aboutPage, ...(aboutDoc.data() as AboutPageContent) }
+            : sample.aboutPage,
           courses: coursesSnap.empty
             ? sample.courses
             : coursesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Course, 'id'>) })),

@@ -10,6 +10,8 @@ import { Testimonials } from '@/components/home/Testimonials';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { AdmissionCTA } from '@/components/home/AdmissionCTA';
 
+export const dynamic = 'force-dynamic';
+
 export default function OrgHomePage() {
   return (
     <>

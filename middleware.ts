@@ -57,8 +57,8 @@ export function middleware(req: NextRequest) {
     requestHeaders.set('x-custom-domain', 'true');
     requestHeaders.set('x-org-slug', matchedOrgSlug);
 
-    const rewritePath = `/${matchedOrgSlug}${url.pathname === '/' ? '' : url.pathname}`;
-    const rewriteUrl = new URL(rewritePath, req.url);
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = `/${matchedOrgSlug}${url.pathname === '/' ? '' : url.pathname}`;
     return NextResponse.rewrite(rewriteUrl, {
       request: {
         headers: requestHeaders,
