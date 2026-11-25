@@ -1,6 +1,5 @@
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
-import { getAuth, Auth } from 'firebase-admin/auth';
 import { getStorage, Storage } from 'firebase-admin/storage';
 
 export const isFirebaseAdminConfigured = (): boolean => {
@@ -25,14 +24,13 @@ function formatPrivateKey(key: string | undefined): string | undefined {
 
 let adminApp: App | null = null;
 let adminDb: Firestore | null = null;
-let adminAuth: Auth | null = null;
 let adminStorage: Storage | null = null;
+let adminAuthInstance: unknown = null;
 
 try {
   if (getApps().length > 0) {
     adminApp = getApps()[0]!;
     adminDb = getFirestore(adminApp);
-    adminAuth = getAuth(adminApp);
     adminStorage = getStorage(adminApp);
   } else if (isFirebaseAdminConfigured()) {
     const projectId =
@@ -53,7 +51,6 @@ try {
       });
 
       adminDb = getFirestore(adminApp);
-      adminAuth = getAuth(adminApp);
       adminStorage = getStorage(adminApp);
     }
   }
@@ -61,8 +58,26 @@ try {
   console.error('Firebase admin initialization failed safely:', error);
   adminApp = null;
   adminDb = null;
-  adminAuth = null;
   adminStorage = null;
 }
 
-export { adminApp, adminDb, adminAuth, adminStorage };
+/**
+ * Lazy-load Firebase Admin Auth dynamically to avoid CJS require(ESM) issues on serverless
+ */
+export async function getAdminAuth() {
+  if (adminAuthInstance) return adminAuthInstance;
+  if (!adminApp) return null;
+  try {
+    const { getAuth } = await import('firebase-admin/auth');
+    adminAuthInstance = getAuth(adminApp);
+    return adminAuthInstance;
+  } catch (error) {
+    console.warn('Dynamic load of firebase-admin/auth skipped or unsupported in this runtime:', error);
+    return null;
+  }
+}
+
+// Proxy exported adminAuth for backwards compatibility
+export const adminAuth = null;
+
+export { adminApp, adminDb, adminStorage };

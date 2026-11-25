@@ -1,4 +1,4 @@
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, adminDb } from '@/lib/firebase/admin';
 import { UserProfile, UserRole } from '@/types';
 
 const USERS_COLLECTION = 'users';
@@ -52,10 +52,11 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
     { merge: true }
   );
 
-  // Also sync custom claims to Firebase Auth for instant JWT verification
-  if (adminAuth) {
+  // Also sync custom claims to Firebase Auth if adminAuth is available
+  const auth = (await getAdminAuth()) as any;
+  if (auth) {
     try {
-      await adminAuth.setCustomUserClaims(profile.id, {
+      await auth.setCustomUserClaims(profile.id, {
         role: profile.role,
         organisationIds: profile.organisationIds || [],
       });
@@ -74,13 +75,14 @@ export async function verifyServerToken(idToken: string): Promise<{
   role: UserRole;
   organisationIds: string[];
 } | null> {
-  if (!adminAuth) {
+  const auth = (await getAdminAuth()) as any;
+  if (!auth) {
     console.warn('adminAuth is not initialized');
     return null;
   }
 
   try {
-    const decoded = await adminAuth.verifyIdToken(idToken);
+    const decoded = await auth.verifyIdToken(idToken);
     const profile = await getUserProfile(decoded.uid);
 
     return {
@@ -99,14 +101,15 @@ export async function verifyServerToken(idToken: string): Promise<{
  * Create a session cookie string from a valid ID token
  */
 export async function createServerSessionCookie(idToken: string, expiresInDays = 5): Promise<string | null> {
-  if (!adminAuth) {
+  const auth = (await getAdminAuth()) as any;
+  if (!auth) {
     console.warn('adminAuth is not initialized');
     return null;
   }
 
   try {
     const expiresIn = expiresInDays * 24 * 60 * 60 * 1000;
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     return sessionCookie;
   } catch (error) {
     console.error('Error creating session cookie:', error);
@@ -123,13 +126,14 @@ export async function verifyServerSessionCookie(sessionCookie: string): Promise<
   role: UserRole;
   organisationIds: string[];
 } | null> {
-  if (!adminAuth) {
+  const auth = (await getAdminAuth()) as any;
+  if (!auth) {
     console.warn('adminAuth is not initialized');
     return null;
   }
 
   try {
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decoded = await auth.verifySessionCookie(sessionCookie, true);
     const profile = await getUserProfile(decoded.uid);
 
     return {
@@ -153,23 +157,24 @@ export async function provisionUser(userData: {
   role: UserRole;
   organisationIds?: string[];
 }): Promise<UserProfile> {
-  if (!adminAuth || !adminDb) {
+  const auth = (await getAdminAuth()) as any;
+  if (!auth || !adminDb) {
     throw new Error('Firebase Admin SDK is not properly configured.');
   }
 
   let userRecord;
   try {
-    userRecord = await adminAuth.getUserByEmail(userData.email);
+    userRecord = await auth.getUserByEmail(userData.email);
     // Update password if provided
     if (userData.password) {
-      await adminAuth.updateUser(userRecord.uid, {
+      await auth.updateUser(userRecord.uid, {
         password: userData.password,
         displayName: userData.displayName,
       });
     }
   } catch {
     // User does not exist, create new user
-    userRecord = await adminAuth.createUser({
+    userRecord = await auth.createUser({
       email: userData.email,
       password: userData.password || 'Admin@123456',
       displayName: userData.displayName,
