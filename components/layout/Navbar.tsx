@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useOrganisation } from '@/context/OrganisationContext';
-import { GraduationCap, Menu, X, Phone, Mail, Clock, ChevronRight, Building2, ChevronDown } from 'lucide-react';
+import { GraduationCap, Menu, X, Phone, Mail, Clock, ChevronRight, Lock } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const pathname = usePathname();
   const { organisation, settings, basePath } = useOrganisation();
 
@@ -64,45 +63,14 @@ export const Navbar: React.FC = () => {
               <span>{organisation.contact.email}</span>
             </a>
 
-            {/* Multi-Organisation Switcher */}
-            <div className="relative">
-              <button
-                onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors cursor-pointer border border-white/20 text-[11px]"
-                aria-label="Switch organisation centre"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Centre: {organisation.name}</span>
-                <ChevronDown className="w-3 h-3 ml-0.5" />
-              </button>
-
-              {isOrgDropdownOpen && (
-                <div
-                  className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-xl border border-slate-200 text-slate-800 py-1.5 z-50 animate-in fade-in duration-150"
-                  onMouseLeave={() => setIsOrgDropdownOpen(false)}
-                >
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Switch Organisation
-                  </div>
-                  <Link
-                    href="/bright"
-                    onClick={() => setIsOrgDropdownOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-blue-50 transition-colors text-slate-800"
-                  >
-                    <span>Bright Academy</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                  </Link>
-                  <Link
-                    href="/excellence"
-                    onClick={() => setIsOrgDropdownOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-orange-50 transition-colors text-slate-800"
-                  >
-                    <span>Excellence Tutorials</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange-600" />
-                  </Link>
-                </div>
-              )}
-            </div>
+            {/* Staff Portal Link */}
+            <Link
+              href="/admin/login"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-medium transition-colors text-[11px] border border-white/15"
+            >
+              <Lock className="w-3 h-3 text-white/70" />
+              <span>Staff Portal</span>
+            </Link>
           </div>
         </div>
       </div>

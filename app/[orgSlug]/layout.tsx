@@ -1,5 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getCompleteOrganisationData, getOrganisationBySlug } from '@/lib/services/organisationService';
 import { OrganisationShell } from '@/components/layout/OrganisationShell';
 import type { Metadata } from 'next';
@@ -41,9 +42,12 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
   }
 
   const completeData = await getCompleteOrganisationData(orgSlug);
+  const headerList = await headers();
+  const isCustomDomain = headerList.get('x-custom-domain') === 'true';
+  const basePath = isCustomDomain ? '' : `/${orgSlug}`;
 
   return (
-    <OrganisationShell initialData={completeData} basePath={`/${orgSlug}`}>
+    <OrganisationShell initialData={completeData} basePath={basePath}>
       {children}
     </OrganisationShell>
   );
