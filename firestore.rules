@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================================
+    // Helper Functions for Role-Based Access Control (RBAC) & Tenant Isolation
+    // =====================================================================
+
+    // Check if the request is from an authenticated user
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Safely retrieve the user profile document from /users/{uid}
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if user has a specific role either in Custom Claims or Firestore User Profile
+    function hasRole(role) {
+      return isSignedIn() && (
+        request.auth.token.role == role ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == role)
+      );
+    }
+
+    // Super Admin: Has unrestricted access across all organisations
+    function isSuperAdmin() {
+      return hasRole('SUPER_ADMIN');
+    }
+
+    // Organisation Admin: Scoped to specific assigned organisations
+    function isOrgAdmin(orgId) {
+      return isSuperAdmin() || (
+        hasRole('ORGANISATION_ADMIN') && (
+          (request.auth.token.organisationIds != null && orgId in request.auth.token.organisationIds) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && orgId in getUserData().organisationIds)
+        )
+      );
+    }
+
+    // Content Editor: Can edit courses, faculty, announcements in assigned organisations
+    function isEditor(orgId) {
+      return isSuperAdmin() || isOrgAdmin(orgId) || (
+        hasRole('EDITOR') && (
+          (request.auth.token.organisationIds != null && orgId in request.auth.token.organisationIds) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && orgId in getUserData().organisationIds)
+        )
+      );
+    }
+
+    // =====================================================================
+    // Organisation Documents & Multi-Tenant Boundaries
+    // =====================================================================
+
+    match /organisations/{orgId} {
+      // Public read access to active organisation metadata (logo, name, colors, contact)
+      allow read: if true;
+
+      // Only Super Admin can register new organisations or delete existing ones
+      allow create, delete: if isSuperAdmin();
+
+      // Organisation Admins can update their own organisation details
+      allow update: if isOrgAdmin(orgId);
+
+      // --- Subcollection: Website Settings ---
+      match /settings/{settingId} {
+        allow read: if true;
+        allow write: if isOrgAdmin(orgId);
+      }
+
+      // --- Subcollection: Page Content (Home & About) ---
+      match /pages/{pageId} {
+        allow read: if true;
+        allow write: if isOrgAdmin(orgId) || isEditor(orgId);
+      }
+
+      // --- Subcollection: Course Curriculum Catalog ---
+      match /courses/{courseId} {
+        allow read: if true;
+        allow write: if isEditor(orgId);
+      }
+
+      // --- Subcollection: Faculty & Teachers ---
+      match /teachers/{teacherId} {
+        allow read: if true;
+        allow write: if isEditor(orgId);
+      }
+
+      // --- Subcollection: Campus Photo Gallery ---
+      match /gallery/{imageId} {
+        allow read: if true;
+        allow write: if isEditor(orgId);
+      }
+
+      // --- Subcollection: Announcements & Alerts ---
+      match /announcements/{announcementId} {
+        allow read: if true;
+        allow write: if isEditor(orgId);
+      }
+
+      // --- Subcollection: Student Admission & Contact Enquiries ---
+      match /enquiries/{enquiryId} {
+        // Anyone (prospective parents and students) can submit an enquiry
+        allow create: if request.resource.data.type in ['admission', 'contact']
+                      && request.resource.data.email != null
+                      && request.resource.data.phone != null;
+
+        // STRICT PRIVACY: Only the assigned Organisation Admin or Super Admin can read/manage enquiries
+        // General public and other tuition centres CANNOT view student enquiries
+        allow read, update, delete: if isOrgAdmin(orgId);
+      }
+    }
+
+    // =====================================================================
+    // Administrative User Profiles (/users/{userId})
+    // =====================================================================
+
+    match /users/{userId} {
+      // Authenticated users can read their own profile; Super Admin can view all profiles
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+
+      // Only Super Admin can provision new administrators or modify security roles
+      allow create, update, delete: if isSuperAdmin();
+    }
+  }
+}

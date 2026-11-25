@@ -2,25 +2,77 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #334155;
+  --theme-primary: #1E40AF;
+  --theme-secondary: #3B82F6;
+  --theme-navy: #172554;
+  --theme-light-blue: #EFF6FF;
+  --theme-light-bg: #F8FAFC;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: #334155;
+  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for academic refinement */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dynamic Organisation Theme Utility Classes */
+.bg-theme-primary {
+  background-color: var(--theme-primary) !important;
+}
+.bg-theme-secondary {
+  background-color: var(--theme-secondary) !important;
+}
+.bg-theme-navy {
+  background-color: var(--theme-navy) !important;
+}
+.bg-theme-light {
+  background-color: var(--theme-light-blue) !important;
+}
+.bg-theme-surface {
+  background-color: var(--theme-light-bg) !important;
+}
+
+.text-theme-primary {
+  color: var(--theme-primary) !important;
+}
+.text-theme-secondary {
+  color: var(--theme-secondary) !important;
+}
+.text-theme-navy {
+  color: var(--theme-navy) !important;
+}
+
+.border-theme-primary {
+  border-color: var(--theme-primary) !important;
+}
+.border-theme-secondary {
+  border-color: var(--theme-secondary) !important;
+}
+.border-theme-navy {
+  border-color: var(--theme-navy) !important;
+}
+.border-theme-light {
+  border-color: var(--theme-light-blue) !important;
 }

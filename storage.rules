@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.role == 'SUPER_ADMIN';
+    }
+
+    function isOrgAdmin(orgId) {
+      return isSuperAdmin() || (
+        isSignedIn() &&
+        (request.auth.token.role in ['ORGANISATION_ADMIN', 'EDITOR']) &&
+        (request.auth.token.organisationIds != null && orgId in request.auth.token.organisationIds)
+      );
+    }
+
+    // Public images per organisation (logos, banners, faculty photos, gallery)
+    match /organisations/{orgId}/{allPaths=**} {
+      // Anyone can view published photos and logos
+      allow read: if true;
+
+      // Only authorized administrators of this specific organisation can upload or delete media
+      allow write: if isOrgAdmin(orgId)
+                   && request.resource.size < 5 * 1024 * 1024 // 5 MB max file size
+                   && request.resource.contentType.matches('image/.*'); // Only image MIME types
+    }
+  }
+}
